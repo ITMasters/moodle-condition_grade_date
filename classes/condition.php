@@ -373,23 +373,25 @@ class condition extends \core_availability\condition {
         if (($cachedgrades = $cache->get($userid)) === false) {
             $cachedgrades = array();
         } else {
-			//Need to make sure the cached grade is within allowed dates
-			$cached_record = $DB->get_record('grade_grades', array(
-                    'userid' => $userid, 'itemid' => $gradeitemid));
-			if ($cached_record && !is_null($cached_record->finalgrade) && $cached_record->rawgrademax != $cached_record->rawgrademin) {
-				switch ($this->direction) {
-					case self::DIRECTION_FROM:
-						$allow = $cached_record->timecreated >= $this->time;
-						break;
-					case self::DIRECTION_UNTIL:
-						$allow = $cached_record->timecreated < $this->time;
-						break;
-					default:
-						throw new \coding_exception('Unexpected direction');
-				}
-				if(!$allow){
-					$cache->delete($userid);
-					$cachedgrades->delete($userid);
+			if(($this->direction == self::DIRECTION_UNTIL && time() >= $this->time)){
+				//Need to make sure the cached grade is within allowed dates
+				$cached_record = $DB->get_record('grade_grades', array(
+						'userid' => $userid, 'itemid' => $gradeitemid));
+				if ($cached_record && !is_null($cached_record->finalgrade) && $cached_record->rawgrademax != $cached_record->rawgrademin) {
+					switch ($this->direction) {
+						case self::DIRECTION_FROM:
+							$allow = $cached_record->timecreated >= $this->time;
+							break;
+						case self::DIRECTION_UNTIL:
+							$allow = $cached_record->timecreated < $this->time;
+							break;
+						default:
+							throw new \coding_exception('Unexpected direction');
+					}
+					if(!$allow){
+						$cache->delete($userid);
+						$cachedgrades->delete($gradeitemid);
+					}
 				}
 			}
 		}
@@ -410,7 +412,7 @@ class condition extends \core_availability\condition {
                     // are equal. Below change does not affect function behavior, just avoids the warning.
                     if (is_null($record->finalgrade) || $record->rawgrademax == $record->rawgrademin) {
                         // No grade = false.
-                        $cachedgrades[$record->id] = false;
+                        //$cachedgrades[$record->id] = false;
                     } else {
                         switch ($this->direction) {
                             case self::DIRECTION_FROM:
